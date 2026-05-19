@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Kullanımı Ve Kaynak Tüketimi</title>
+    <meta name="description"
+        content="Yapay zeka sorgularının çevresel etkisini ve kaynak tüketimini ölçen analiz platformu.">
+
+    <!-- Google Fonts: Character-rich selection -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Plus+Jakarta+Sans:wght@400;500;700&display=swap"
+        rel="stylesheet">
+
+    <style>
+        :root {
+            /* Custom Brand Palette */
+            --bg-deep: #05070a;
+            --surface: #0d1117;
+            --surface-elevated: #161b22;
+            --accent: #00f2ff;
+            --accent-soft: rgba(0, 242, 255, 0.15);
+            --electric: #fbbf24;
+            --water: #3b82f6;
+            --co2: #ef4444;
+            --text-primary: #f0f6fc;
+            --text-secondary: #8b949e;
+            --border: #30363d;
+
+            /* Spacing Tokens */
+            --space-xs: 4px;
+            --space-sm: 8px;
+            --space-md: 16px;
+            --space-lg: 24px;
+            --space-xl: 48px;
+
+            /* Shadows */
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+            --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.5), 0 0 15px rgba(0, 242, 255, 0.05);
+            --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.6), 0 0 30px rgba(0, 242, 255, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-deep);
+            background-image:
+                radial-gradient(circle at 50% 0%, rgba(0, 242, 255, 0.05) 0%, transparent 50%),
+                url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            line-height: 1.6;
+        }
+
+        /* Layout Structure */
+        .app-container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Sidebar / Chat Section */
+        .chat-section {
+            flex: 1.4;
+            display: flex;
+            flex-direction: column;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            position: relative;
+            z-index: 10;
+        }
+
+        header {
+            padding: var(--space-lg);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            background: rgba(13, 17, 23, 0.8);
+            backdrop-filter: blur(10px);
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--accent);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 15px var(--accent-soft);
+        }
+
+        h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: var(--text-primary);
+        }
+
+        #chat-window {
+            flex: 1;
+            padding: var(--space-lg);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-lg);
+            scroll-behavior: smooth;
+        }
+
+        /* Message Bubbles */
+        .message {
+            max-width: 85%;
+            padding: var(--space-md) var(--space-lg);
+            border-radius: 16px;
+            font-size: 0.95rem;
+            position: relative;
+            animation: slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        @keyframes slideUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .user-msg {
+            align-self: flex-end;
+            background: var(--accent);
+            color: var(--bg-deep);
+            font-weight: 600;
+            border-bottom-right-radius: 4px;
+            box-shadow: var(--shadow-md);
+        }
+
+        .ai-msg {
+            align-self: flex-start;
+            background: var(--surface-elevated);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-bottom-left-radius: 4px;
+        }
+
+        .ai-msg pre {
+            background: var(--bg-deep);
+            padding: var(--space-md);
+            border-radius: 8px;
+            margin: var(--space-sm) 0;
+            overflow-x: auto;
+            font-family: 'monospace';
+            font-size: 0.85rem;
+        }
+
+        .ai-msg b,
+        .ai-msg strong {
+            color: var(--accent);
+        }
+
+        /* Input Area */
+        .input-wrapper {
+            padding: var(--space-lg);
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+        }
+
+        .input-container {
+            display: flex;
+            gap: var(--space-md);
+            background: var(--bg-deep);
+            padding: 6px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .input-container:focus-within {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-soft);
+        }
+
+        input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            font-family: inherit;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        button {
+            background: var(--accent);
+            color: var(--bg-deep);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.1s, filter 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        button:hover {
+            filter: brightness(1.1);
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            transform: scale(0.96);
+        }
+
+        button:disabled {
+            background: var(--text-secondary);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Stats Panel */
+        .stats-section {
+            flex: 1;
+            padding: var(--space-xl);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(circle at 100% 100%, rgba(0, 242, 255, 0.03), transparent);
+        }
+
+        .stats-header {
+            text-align: center;
+            margin-bottom: var(--space-xl);
+        }
+
+        .stats-header h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--accent);
+            margin-bottom: var(--space-sm);
+        }
+
+        .stats-header p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .meters-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--space-xl);
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .meter-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--space-md);
+        }
+
+        .meter-visual {
+            width: 100%;
+            height: 380px;
+            background: var(--surface-elevated);
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .meter-fill {
+            width: 100%;
+            height: 0%;
+            transition: height 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+        }
+
+        .meter-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.5);
+            box-shadow: 0 0 15px white;
+        }
+
+        #fill-electric {
+            background: linear-gradient(to top, #d97706, #fbbf24);
+        }
+
+        #fill-water {
+            background: linear-gradient(to top, #1d4ed8, #3b82f6);
+        }
+
+        #fill-co2 {
+            background: linear-gradient(to top, #b91c1c, #ef4444);
+        }
+
+        .meter-label {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .meter-value {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        /* Scrollbar Styling */
+        #chat-window::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #chat-window::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        #chat-window::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 1024px) {
+            body {
+                flex-direction: column;
+                height: auto;
+                overflow: auto;
+            }
+
+            .app-container {
+                flex-direction: column;
+                height: auto;
+            }
+
+            .chat-section {
+                height: 600px;
+                flex: none;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+            }
+
+            .stats-section {
+                padding: var(--space-xl) var(--space-lg);
+            }
+
+            .meters-grid {
+                gap: var(--space-lg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <section class="chat-section">
+            <header>
+                <div class="logo-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#05070a" stroke-width="3"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                    </svg>
+                </div>
+                <h1>Yapay Zekanın Çevreye Etkisi</h1>
+            </header>
+
+            <div id="chat-window">
+                <div class="message ai-msg">
+                    Merhaba. Yapay zekaya bir mesaj gönderebilir ve tüketilen enerjiyi, suyu ve CO2 salınımını
+                    görebilirsiniz.
+                </div>
+            </div>
+
+            <div class="input-wrapper">
+                <div class="input-container">
+                    <input type="text" id="user-input" placeholder="Yapay zekaya sorun..."
+                        onkeypress="handleKeyPress(event)">
+                    <button id="send-btn" onclick="sendMessage()">
+                        <span>Sor</span>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section class="stats-section">
+            <div class="meters-grid">
+                <!-- Electric -->
+                <div class="meter-card">
+                    <div class="meter-value" id="val-electric">0.0</div>
+                    <div class="meter-visual">
+                        <div id="fill-electric" class="meter-fill"></div>
+                    </div>
+                    <div class="meter-label">Enerji (Wh)</div>
+                </div>
+
+                <!-- Water -->
+                <div class="meter-card">
+                    <div class="meter-value" id="val-water">0.0</div>
+                    <div class="meter-visual">
+                        <div id="fill-water" class="meter-fill"></div>
+                    </div>
+                    <div class="meter-label">Su (ml)</div>
+                </div>
+
+                <!-- CO2 -->
+                <div class="meter-card">
+                    <div class="meter-value" id="val-co2">0.0</div>
+                    <div class="meter-visual">
+                        <div id="fill-co2" class="meter-fill"></div>
+                    </div>
+                    <div class="meter-label">CO2 (g)</div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // API Key (Keep for demo as provided)
+        const API_KEY = "AIzaSyAvfNi9rpsdzylVIp__TWRSEdi_cqK86TM";
+        let totals = { electric: 0, water: 0, co2: 0 };
+
+        // Simple Markdown-ish parser for demo
+        function formatText(text) {
+            return text
+                .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+                .replace(/\*(.*?)\*/g, '<i>$1</i>')
+                .replace(/```([\s\S]*?)```/g, '<pre>$1</pre>')
+                .replace(/\n/g, '<br>');
+        }
+
+        async function sendMessage() {
+            const inputField = document.getElementById('user-input');
+            const btn = document.getElementById('send-btn');
+            const text = inputField.value.trim();
+            if (!text) return;
+
+            appendMessage(text, 'user-msg');
+            inputField.value = '';
+            btn.disabled = true;
+
+            // Impact of User Query
+            updateStats(text.length);
+
+            try {
+                // Using Gemini 3.1 Flash Lite
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${API_KEY}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: text }] }] })
+                });
+
+                const data = await response.json();
+
+                if (data.error) throw new Error(data.error.message);
+
+                if (data.candidates && data.candidates[0].content) {
+                    const aiResponse = data.candidates[0].content.parts[0].text;
+                    appendMessage(aiResponse, 'ai-msg');
+                    updateStats(aiResponse.length);
+                }
+
+            } catch (error) {
+                console.error("API Hata:", error.message);
+                // Demo fallback logic
+                setTimeout(() => {
+                    const simRes = "AI cevap vermedi. Hata sebebi: " + error.message;
+                    appendMessage(simRes, 'ai-msg');
+                }, 800);
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function updateStats(len) {
+            // Realistic estimation coefficients per character (Demo purposes)
+            totals.electric += len * 0.048;
+            totals.water += len * 0.0043;
+            totals.co2 += len * 1.13;
+
+            // Update UI Numbers
+            animateValue('val-electric', totals.electric);
+            animateValue('val-water', totals.water);
+            animateValue('val-co2', totals.co2);
+
+            // Update Meters (Cap at 100 for visual)
+            // Ortalama 20 mesajda dolması için hesaplanan bölenler:
+            // 1 mesaj (500 char) -> Elektrik: 5, Su: 250, CO2: 10
+            // 20 mesaj -> Elektrik: 100, Su: 5000, CO2: 200
+            document.getElementById('fill-electric').style.height = Math.min((totals.electric / 1000) * 100, 100) + "%";
+            document.getElementById('fill-water').style.height = Math.min((totals.water / 50) * 100, 100) + "%";
+            document.getElementById('fill-co2').style.height = Math.min((totals.co2 / 5000) * 100, 100) + "%";
+        }
+
+        function animateValue(id, end) {
+            const obj = document.getElementById(id);
+            const start = parseFloat(obj.innerText);
+            const duration = 1000;
+            let startTime = null;
+
+            function step(timestamp) {
+                if (!startTime) startTime = timestamp;
+                const progress = Math.min((timestamp - startTime) / duration, 1);
+                obj.innerText = (progress * (end - start) + start).toFixed(1);
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            }
+            window.requestAnimationFrame(step);
+        }
+
+        function appendMessage(text, type) {
+            const win = document.getElementById('chat-window');
+            const d = document.createElement('div');
+            d.className = `message ${type}`;
+            d.innerHTML = type === 'ai-msg' ? formatText(text) : text;
+            win.appendChild(d);
+
+            // Auto-scroll logic
+            setTimeout(() => {
+                win.scrollTop = win.scrollHeight;
+            }, 50);
+        }
+
+        function handleKeyPress(e) { if (e.key === 'Enter') sendMessage(); }
+    </script>
+</body>
+
+</html>
